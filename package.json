@@ -1,6 +1,6 @@
 {
   "name": "express-frisk",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Express Validator Middleware",
   "main": "index.js",
   "dependencies": {
@@ -15,7 +15,7 @@
     "type": "git",
     "url": "git+https://github.com/zainadil/express-frisk.git"
   },
-  "author": "Zain Adil <zain.adil@thalmic.com>",
+  "author": "Zain Adil <zainadilzain@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/zainadil/express-frisk/issues"
