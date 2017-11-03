@@ -6,7 +6,7 @@ Express Middleware to Validate Requests
 Check lib/frisk.js for the available types. 
 
 ```javascript
-const frisk = require(express-frisk);
+const frisk = require('express-frisk');
 
 router.get('/:id',
     frisk.validateRequest({
