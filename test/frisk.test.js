@@ -87,6 +87,25 @@ describe('Express Frisk Middleware', () => {
             const next = () => { throw new Error('Next should not be called');};
             frisk.validateRequest(nestedSchema)(req,res,next);
         });
+        it('Accepts well formed sub-properties', () => {
+            const req = Utils.newRequest({
+                someObject: {
+                    foo: 'boo',
+                    bar: 'f952de91-d2f1-448a-ad99-abe46da99207'
+                }
+            });
+            const res = Utils.newResponse((payload) => {
+                payload.errors.should.be.empty();
+            });
+            
+            let called = false;
+            const next = () => { // TODO maybe use sinon calledonce?
+                called = true;
+            };
+            frisk.validateRequest(nestedSchema)(req,res,next);
+            called.should.equal(true);
+            
+        });
 
         it('Strict mode - detects undefined parameters', null);
         it('Checks multiple levels of nesting', null);
