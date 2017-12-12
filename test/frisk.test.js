@@ -82,11 +82,15 @@ describe('Express Frisk Middleware', () => {
             const res = Utils.newResponse((payload) => {
                 payload.message.should.equal('Invalid Request');
                 payload.errors[0].name.should.equal('someObject.bar');
-                payload.errors[0].error.should.equal('someObject.bar should be a uuid');
+                payload.errors[0].error.should.equal('someObject.bar must be of type uuid');
             });
             const next = () => { throw new Error('Next should not be called');};
             frisk.validateRequest(nestedSchema)(req,res,next);
         });
+
+        it('Strict mode - detects undefined parameters', null);
+        it('Checks multiple levels of nesting', null);
+        it('Checks values spread across body, query, and params', null);
     });
 
 });
