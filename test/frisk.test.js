@@ -14,6 +14,7 @@ const objectSchema  = {
     } 
 };
 
+
 describe('Express Frisk Middleware', () => {
     context('When the schema has an object at the top level', () => {
         
@@ -114,6 +115,50 @@ describe('Express Frisk Middleware', () => {
         it('Checks multiple levels of nesting', null);
         it('Checks values spread across body, query, and params', null);
         it('Double check that strict mode defaults to false when not passed in', null);
+    });
+
+    context('When parameters are defined in query, body, and params', () => {
+        it.only('validates all parameters', () => {
+            const schema = {
+                fruit: {
+                    required: true,
+                    type: frisk.types.string
+                },
+                vegetable: {
+                    required: true,
+                    type: frisk.types.string
+                },
+                condiment: {
+                    required: true,
+                    type: frisk.types.string
+                }
+            };
+            const req = {
+                params: {
+                    fruit: 'apple'
+                },
+                body: {
+                    vegetable: 'carrot'
+                },
+                query: {
+                    condiment: 'ketchup'
+                } 
+            };
+           
+            const res = Utils.newResponse((payload) => {
+                throw new Error('Response should not be written to');
+            });
+
+            let called = false;
+            const next = () => { // TODO maybe use sinon calledonce?
+                called = true;
+            };
+            
+            
+            frisk.validateRequest(schema, false)(req,res,next);
+            called.should.equal(true);
+
+        });
     });
 
     context('When passed undefined parameters', () => {
