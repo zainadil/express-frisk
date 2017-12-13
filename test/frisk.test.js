@@ -112,7 +112,154 @@ describe('Express Frisk Middleware', () => {
             
         });
 
-        it('Detects errors at multiple levels of nesting', null);
+        const restaurantSchema = {
+            address: {
+                type: frisk.types.object,
+                required: true,
+                properties: {
+                    streetNumber: {
+                        required: true,
+                        type: frisk.types.number
+                    },
+                    streetName: {
+                        required: true,
+                        type: frisk.types.string
+                    },
+                    city: {
+                        required: true,
+                        type: frisk.types.string,
+                    },
+                    province: {
+                        required: true,
+                        type: frisk.types.string,
+                    },
+                    apartmentNumber: {
+                        required: false,
+                        type: frisk.types.number
+                    }
+                }
+            },
+            name: {
+                required: true,
+                type: frisk.types.string
+            },
+            menus: {
+                required: true,
+                type: frisk.types.object,
+                properties: {
+                    lunch: {
+                        required: true,
+                        type: frisk.types.object,
+                        properties: {
+                            appetizers: {
+                                required: true,
+                                type: frisk.types.arrayOfStrings
+                            },
+                            mains: {
+                                required: true,
+                                type: frisk.types.arrayOfStrings
+                            },
+                            desserts: {
+                                required: true,
+                                type: frisk.types.arrayOfStrings
+                            }
+                        }
+                    },
+                    dinner: {
+                        required: true,
+                        type: frisk.types.object,
+                        properties: {
+                            appetizers: {
+                                required: true,
+                                type: frisk.types.arrayOfStrings
+                            },
+                            mains: {
+                                required: true,
+                                type: frisk.types.arrayOfStrings
+                            },
+                            desserts: {
+                                required: true,
+                                type: frisk.types.arrayOfStrings
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }; // TODO move me
+
+        it('Validates against complex schema', () => { // TODO move me
+            const req = Utils.newRequest({
+                name: 'Fancy Diner',
+                address: {
+                    streetNumber: 10,
+                    streetName: 'main st',
+                    city: 'ottawa',
+                    province: 'ontario'
+                },
+                menus: {
+                    lunch: {
+                        appetizers: ['french fries', 'soup'],
+                        mains: ['burger', 'veggie curry', 'chicken and waffles'],
+                        desserts: ['ice cream', 'cake']
+                    } ,
+                    dinner: {
+                        appetizers: ['fries', 'bigger soup'],
+                        mains: ['steak', 'veggie curry'],
+                        desserts: ['cheese cake', 'apple pie']
+                    }   
+                }
+            });
+            const res = Utils.newResponse((payload) => {
+                payload.errors.should.be.empty();
+            });
+            
+            let called = false;
+            const next = () => { // TODO maybe use sinon calledonce?
+                called = true;
+            };
+            frisk.validateRequest(restaurantSchema,true)(req,res,next);
+            called.should.equal(true);
+
+        });
+
+        it('detects multiple errors with complex schema', () => { // TODO move me
+            const req = Utils.newRequest({
+                name: 456,
+                address: {
+                    streetNumber: 10,
+                    city: 'ottawa',
+                },
+                menus: {
+                    dinner: {
+                        appetizers: [123, 45],
+                        desserts: ['cheese cake', 'apple pie']
+                    }, 
+                    brunch: {
+                        desserts: ['cheese cake', 'apple pie']
+                    }
+                },
+                liquorLicense: true
+            });
+            const res = Utils.newResponse((payload) => {
+                payload.errors.length.should.equal(8);
+                payload.errors[0].error.should.equal('address.streetName is a required field');
+                payload.errors[1].error.should.equal('address.province is a required field');
+                payload.errors[2].error.should.equal('name must be of type string');
+                payload.errors[3].error.should.equal('menus.lunch is a required field');
+                payload.errors[4].error.should.equal('menus.dinner.appetizers must be of type arrayOfStrings');
+                payload.errors[5].error.should.equal('menus.dinner.mains is a required field');
+                payload.errors[6].error.should.equal('menus.brunch is not an allowed field');
+                payload.errors[7].error.should.equal('liquorLicense is not an allowed field');
+            });
+            
+            
+            const next = () => { 
+                throw new Error('next should not be called');
+            };
+            frisk.validateRequest(restaurantSchema,true)(req,res,next);
+          
+        });
         
     });
 
