@@ -6,14 +6,17 @@ const should = chai.use(require('chai-as-promised')).should();
 const Utils = require('./testing.utils.js');
 const frisk = require('../lib/frisk');
 
+
+const objectSchema  = {
+    someObject: {
+        required: true,
+        type: frisk.types.object,
+    } 
+};
+
 describe('Express Frisk Middleware', () => {
     context('When the schema has an object at the top level', () => {
-        const objectSchema  = {
-            someObject: {
-                required: true,
-                type: frisk.types.object,
-            } 
-        };
+        
         it('Detects the missing property', () => {
             
             const req = Utils.newRequest({});
@@ -107,9 +110,58 @@ describe('Express Frisk Middleware', () => {
             
         });
 
-        it('Strict mode - detects undefined parameters', null);
+       
         it('Checks multiple levels of nesting', null);
         it('Checks values spread across body, query, and params', null);
+        it('Double check that strict mode defaults to false when not passed in', null);
+    });
+
+    context('When passed undefined parameters', () => {
+        context('Strict mode', () => {
+            it('rejects undefined parameters', () => {
+                const req = Utils.newRequest({
+                    forest: 'trees',
+                    someObject: {
+                        foo: 'boo'
+                    },
+                    fish: 'salmon'
+                });
+                const res = Utils.newResponse((payload) => {
+                    payload.message.should.equal('Invalid Request');
+                    payload.errors[0].name.should.equal('forest');
+                    payload.errors[0].error.should.equal('forest is not an allowed field');
+                    payload.errors[1].name.should.equal('fish');
+                    payload.errors[1].error.should.equal('fish is not an allowed field');
+                });
+                const next = () => { throw new Error('Next should not be called');};
+                frisk.validateRequest(objectSchema, true)(req,res,next);
+            });
+        });
+
+        context('Not strict mode', () => {
+            it('allows undefined parameters', () => {
+                const req = Utils.newRequest({
+                    forest: 'trees',
+                    someObject: {
+                        foo: 'boo'
+                    },
+                    fish: 'salmon'
+                });
+                const res = Utils.newResponse((payload) => {
+                    throw new Error('Response should not be written to');
+                });
+    
+                let called = false;
+                const next = () => { // TODO maybe use sinon calledonce?
+                    called = true;
+                };
+                
+                frisk.validateRequest(objectSchema, false)(req,res,next);
+                called.should.equal(true);
+            });
+        });
+        
+        
     });
 
 });
