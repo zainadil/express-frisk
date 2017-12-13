@@ -15,6 +15,23 @@ const objectSchema  = {
 };
 
 
+const nestedSchema  = {
+    someObject: {
+        required: true,
+        type: frisk.types.object,
+        properties: {
+            foo: {
+                required: true,
+                type: frisk.types.string,
+            },
+            bar: {
+                required: true,
+                type: frisk.types.uuid,
+            }
+        }
+    } 
+}; 
+
 describe('Express Frisk Middleware', () => {
     context('When the schema has an object at the top level', () => {
         
@@ -46,22 +63,6 @@ describe('Express Frisk Middleware', () => {
         });
     });
     context('When the schema has nested object properties', () => {
-        const nestedSchema  = {
-            someObject: {
-                required: true,
-                type: frisk.types.object,
-                properties: {
-                    foo: {
-                        required: true,
-                        type: frisk.types.string,
-                    },
-                    bar: {
-                        required: true,
-                        type: frisk.types.uuid,
-                    }
-                }
-            } 
-        }; 
         it('Detects the missing nested property', () => {
             const req = Utils.newRequest({
                 someObject: {
@@ -111,14 +112,12 @@ describe('Express Frisk Middleware', () => {
             
         });
 
-       
-        it('Checks multiple levels of nesting', null);
-        it('Checks values spread across body, query, and params', null);
-        it('Double check that strict mode defaults to false when not passed in', null);
+        it('Detects errors at multiple levels of nesting', null);
+        
     });
 
     context('When parameters are defined in query, body, and params', () => {
-        it.only('validates all parameters', () => {
+        it('validates all parameters', () => {
             const schema = {
                 fruit: {
                     required: true,
@@ -181,6 +180,28 @@ describe('Express Frisk Middleware', () => {
                 const next = () => { throw new Error('Next should not be called');};
                 frisk.validateRequest(objectSchema, true)(req,res,next);
             });
+            it('rejects undefined nested parameters', () => {
+                const req = Utils.newRequest({
+                    forest: 'trees',
+                    someObject: {
+                        foo: 'boo',
+                        bar: '0d150abe-125a-4565-91d8-01d565d648e7',
+                        woo: 'ooh'
+                    },
+                });
+                const res = Utils.newResponse((payload) => {
+                    payload.message.should.equal('Invalid Request');
+                    payload.errors.length.should.equal(2);
+                    payload.errors[0].name.should.equal('someObject.woo');
+                    payload.errors[0].error.should.equal('someObject.woo is not an allowed field');
+                    payload.errors[1].name.should.equal('forest');
+                    payload.errors[1].error.should.equal('forest is not an allowed field');
+                    
+                });
+                const next = () => { throw new Error('Next should not be called');};
+                frisk.validateRequest(nestedSchema, true)(req,res,next);
+            });
+            
         });
 
         context('Not strict mode', () => {
@@ -201,7 +222,7 @@ describe('Express Frisk Middleware', () => {
                     called = true;
                 };
                 
-                frisk.validateRequest(objectSchema, false)(req,res,next);
+                frisk.validateRequest(objectSchema)(req,res,next);
                 called.should.equal(true);
             });
         });
