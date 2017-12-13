@@ -1,14 +1,33 @@
 'use strict';
 
+const _ = require('lodash');
 const chai = require('chai');
 const should = chai.use(require('chai-as-promised')).should();
+const sinon = require('sinon');
 
 const Utils = require('./testing.utils.js');
 const frisk = require('../lib/frisk');
 
 const testSchemas = require('./schemas.js');
 
+
+// re-usable test stubs
+const Spies =  {
+    
+    // use this as next method if the desired test outcome for frisk middleware to accept
+    nextAccept: sinon.spy(() => { Promise.resolve(); }),
+
+    // use this as next method if the desired test outcome is for frisk middleware to reject the request
+    nextReject: sinon.spy(() => { throw new Error('Next should not be called by this test'); })
+};
+
 describe('Express Frisk Middleware', () => {
+    beforeEach('Reset Spies', () => {
+        _.each(Spies, (spy) => {
+            spy.reset();
+        });
+    });
+
     context('When the schema has an object at the top level', () => {
         it('Detects missing property', () => {
             
@@ -18,8 +37,7 @@ describe('Express Frisk Middleware', () => {
                 payload.errors[0].name.should.equal('someObject');
                 payload.errors[0].error.should.equal('someObject is a required field');
             });
-            const next = () => {};
-            frisk.validateRequest(testSchemas.objectSchema)(req,res,next);
+            frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextReject);
         });
         it('Accepts matching property', () => {
             const req = Utils.newRequest({
@@ -29,12 +47,8 @@ describe('Express Frisk Middleware', () => {
             });
             const res = Utils.newResponse((payload) => {});
             
-            let called = false;
-            const next = () => { // TODO maybe use sinon calledonce?
-                called = true;
-            };
-            frisk.validateRequest(testSchemas.objectSchema)(req,res,next);
-            called.should.equal(true);
+            frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextAccept);
+            Spies.nextAccept.calledOnce.should.equal(true);
         });
     });
     context('When the schema has nested object properties', () => {
@@ -49,8 +63,7 @@ describe('Express Frisk Middleware', () => {
                 payload.errors[0].name.should.equal('someObject.bar');
                 payload.errors[0].error.should.equal('someObject.bar is a required field');
             });
-            const next = () => { throw new Error('Next should not be called');};
-            frisk.validateRequest(testSchemas.nestedSchema)(req,res,next);
+            frisk.validateRequest(testSchemas.nestedSchema)(req,res,Spies.nextReject);
         });
         it('Detects when sub property is wrong type', () => {
             const req = Utils.newRequest({
@@ -64,8 +77,7 @@ describe('Express Frisk Middleware', () => {
                 payload.errors[0].name.should.equal('someObject.bar');
                 payload.errors[0].error.should.equal('someObject.bar must be of type uuid');
             });
-            const next = () => { throw new Error('Next should not be called');};
-            frisk.validateRequest(testSchemas.nestedSchema)(req,res,next);
+            frisk.validateRequest(testSchemas.nestedSchema)(req,res,Spies.nextAccept);
         });
         it('Accepts well formed sub-properties', () => {
             const req = Utils.newRequest({
@@ -78,12 +90,8 @@ describe('Express Frisk Middleware', () => {
                 payload.errors.should.be.empty();
             });
             
-            let called = false;
-            const next = () => { // TODO maybe use sinon calledonce?
-                called = true;
-            };
-            frisk.validateRequest(testSchemas.nestedSchema)(req,res,next);
-            called.should.equal(true);
+            frisk.validateRequest(testSchemas.nestedSchema)(req,res,Spies.nextAccept);
+            Spies.nextAccept.calledOnce.should.equal(true);
         });
     });
 
@@ -104,14 +112,9 @@ describe('Express Frisk Middleware', () => {
             const res = Utils.newResponse((payload) => {
                 throw new Error('Response should not be written to');
             });
-
-            let called = false;
-            const next = () => { // TODO maybe use sinon calledonce?
-                called = true;
-            };
-            frisk.validateRequest(testSchemas.foodSchema, false)(req,res,next);
-            called.should.equal(true);
-
+            
+            frisk.validateRequest(testSchemas.foodSchema, false)(req,res,Spies.nextAccept);
+            Spies.nextAccept.calledOnce.should.equal(true);
         });
     });
 
@@ -132,8 +135,8 @@ describe('Express Frisk Middleware', () => {
                     payload.errors[1].name.should.equal('fish');
                     payload.errors[1].error.should.equal('fish is not an allowed field');
                 });
-                const next = () => { throw new Error('Next should not be called');};
-                frisk.validateRequest(testSchemas.objectSchema, true)(req,res,next);
+                
+                frisk.validateRequest(testSchemas.objectSchema, true)(req,res,Spies.nextReject);
             });
             it('rejects undefined nested parameters', () => {
                 const req = Utils.newRequest({
@@ -153,8 +156,7 @@ describe('Express Frisk Middleware', () => {
                     payload.errors[1].error.should.equal('forest is not an allowed field');
                     
                 });
-                const next = () => { throw new Error('Next should not be called');};
-                frisk.validateRequest(testSchemas.nestedSchema, true)(req,res,next);
+                frisk.validateRequest(testSchemas.nestedSchema, true)(req,res,Spies.nextReject);
             });
             
         });
@@ -172,13 +174,8 @@ describe('Express Frisk Middleware', () => {
                     throw new Error('Response should not be written to');
                 });
     
-                let called = false;
-                const next = () => { // TODO maybe use sinon calledonce?
-                    called = true;
-                };
-                
-                frisk.validateRequest(testSchemas.objectSchema)(req,res,next);
-                called.should.equal(true);
+                frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextAccept);
+                Spies.nextAccept.calledOnce.should.equal(true);
             });
         });
         context('Complex schema', () => {
@@ -208,13 +205,8 @@ describe('Express Frisk Middleware', () => {
                     payload.errors.should.be.empty();
                 });
                 
-                let called = false;
-                const next = () => { // TODO maybe use sinon calledonce?
-                    called = true;
-                };
-                frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,next);
-                called.should.equal(true);
-    
+                frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextAccept);
+                Spies.nextAccept.calledOnce.should.equal(true);
             });
     
             it('detects multiple errors', () => { 
@@ -247,11 +239,7 @@ describe('Express Frisk Middleware', () => {
                     payload.errors[7].error.should.equal('liquorLicense is not an allowed field');
                 });
                 
-                const next = () => { 
-                    throw new Error('next should not be called');
-                };
-                frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,next);
-              
+                frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextReject);
             });
         });
     });
