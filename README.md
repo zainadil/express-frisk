@@ -15,7 +15,7 @@ router.get('/:id',
             required: true
         },
         someObject: {
-            type: frist.types.object,
+            type: frisk.types.object,
             required: true,
             properties: {
                 foo: {
@@ -36,13 +36,11 @@ Strict mode is turned off by default, and enabled on a per-request basis:
 ```javascript
 
 /// validate in strict mode:
+
 router.get('/:id', 
-    var strict = true;
-    frisk.validateRequest(schema, strict);
+    frisk.validateRequest(schema, true),  // strict=true
     (req, res, next) => {
         res.status(200).send('Hello World');
     });
-});
-
 ```
 
