@@ -1,6 +1,6 @@
 {
   "name": "express-frisk",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "description": "Express Validator Middleware",
   "main": "index.js",
   "dependencies": {
