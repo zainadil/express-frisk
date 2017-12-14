@@ -10,7 +10,6 @@ const frisk = require('../lib/frisk');
 
 const testSchemas = require('./schemas.js');
 
-
 // re-usable test stubs
 const Spies =  {
     
@@ -30,7 +29,6 @@ describe('Express Frisk Middleware', () => {
 
     context('When the schema has an object at the top level', () => {
         it('Detects missing property', () => {
-            
             const req = Utils.newRequest({});
             const res = Utils.newResponse((payload) => {
                 payload.message.should.equal('Invalid Request');
@@ -89,7 +87,6 @@ describe('Express Frisk Middleware', () => {
             const res = Utils.newResponse((payload) => {
                 payload.errors.should.be.empty();
             });
-            
             frisk.validateRequest(testSchemas.nestedSchema)(req,res,Spies.nextAccept);
             Spies.nextAccept.calledOnce.should.equal(true);
         });
@@ -108,11 +105,9 @@ describe('Express Frisk Middleware', () => {
                     condiment: 'ketchup'
                 } 
             };
-           
             const res = Utils.newResponse((payload) => {
                 throw new Error('Response should not be written to');
             });
-            
             frisk.validateRequest(testSchemas.foodSchema, false)(req,res,Spies.nextAccept);
             Spies.nextAccept.calledOnce.should.equal(true);
         });
@@ -154,13 +149,11 @@ describe('Express Frisk Middleware', () => {
                     payload.errors[0].error.should.equal('someObject.woo is not an allowed field');
                     payload.errors[1].name.should.equal('forest');
                     payload.errors[1].error.should.equal('forest is not an allowed field');
-                    
                 });
                 frisk.validateRequest(testSchemas.nestedSchema, true)(req,res,Spies.nextReject);
             });
             
         });
-
         context('Not strict mode', () => {
             it('allows undefined parameters', () => {
                 const req = Utils.newRequest({
@@ -204,11 +197,9 @@ describe('Express Frisk Middleware', () => {
                 const res = Utils.newResponse((payload) => {
                     payload.errors.should.be.empty();
                 });
-                
                 frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextAccept);
                 Spies.nextAccept.calledOnce.should.equal(true);
             });
-    
             it('detects multiple errors', () => { 
                 const req = Utils.newRequest({
                     name: 456,
@@ -238,7 +229,6 @@ describe('Express Frisk Middleware', () => {
                     payload.errors[6].error.should.equal('menus.brunch is not an allowed field');
                     payload.errors[7].error.should.equal('liquorLicense is not an allowed field');
                 });
-                
                 frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextReject);
             });
         });
