@@ -37,6 +37,15 @@ describe('Express Frisk Middleware', () => {
             });
             frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextReject);
         });
+        it('Validates that parameter is an object', () => {
+            const req = Utils.newRequest({ someObject: 'not an object' });
+            const res = Utils.newResponse((payload) => {
+                payload.message.should.equal('Invalid Request');
+                payload.errors[0].name.should.equal('someObject');
+                payload.errors[0].error.should.equal('someObject must be of type object');
+            });
+            frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextReject);
+        });
         it('Accepts matching property', () => {
             const req = Utils.newRequest({
                 someObject: {
