@@ -37,6 +37,15 @@ describe('Express Frisk Middleware', () => {
             });
             frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextReject);
         });
+        it('Validates that parameter is an object', () => {
+            const req = Utils.newRequest({ someObject: 'not an object' });
+            const res = Utils.newResponse((payload) => {
+                payload.message.should.equal('Invalid Request');
+                payload.errors[0].name.should.equal('someObject');
+                payload.errors[0].error.should.equal('someObject must be of type object');
+            });
+            frisk.validateRequest(testSchemas.objectSchema)(req,res,Spies.nextReject);
+        });
         it('Accepts matching property', () => {
             const req = Utils.newRequest({
                 someObject: {
@@ -118,9 +127,7 @@ describe('Express Frisk Middleware', () => {
             it('rejects undefined parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
-                    someObject: {
-                        foo: 'boo'
-                    },
+                    someObject: '{"boo": "boo"}',
                     fish: 'salmon'
                 });
                 const res = Utils.newResponse((payload) => {
@@ -136,11 +143,7 @@ describe('Express Frisk Middleware', () => {
             it('rejects undefined nested parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
-                    someObject: {
-                        foo: 'boo',
-                        bar: '0d150abe-125a-4565-91d8-01d565d648e7',
-                        woo: 'ooh'
-                    },
+                    someObject: '{"foo": "boo","bar": "0d150abe-125a-4565-91d8-01d565d648e7","woo": "ooh"}',
                 });
                 const res = Utils.newResponse((payload) => {
                     payload.message.should.equal('Invalid Request');
