@@ -262,7 +262,7 @@ describe('Express Frisk Middleware', () => {
         };
 
         frisk.validateRequest(arrayOfStringsSchema)(req,res,Spies.nextReject);
-    })
+    });
 
     context('When using \'in\' parameters', () => {
 
@@ -363,15 +363,30 @@ describe('Express Frisk Middleware', () => {
                 frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
             });
 
-            // it('rejects when there is a missing required and bad type in an object', () => {
-            //     const req = {
-            //         body: {
-            //             address: {
-            //                 apartmentNumber:
-            //             }
-            //         }
-            //     }
-            // })
+            it('rejects when there is a missing required and bad type in an object', () => {
+                const req = {
+                    body: {
+                        address: {
+                            apartmentNumber: 'notanumberlollolololol'
+                        }
+                    }
+                };
+                const res = Utils.newResponse((payload) => {
+                    // payload.errors.should.be.lengthOf(2);
+                    payload.errors.should.deep.include.members([
+                        {
+                            error: 'body.address.apartmentNumber must be of type number',
+                            name: 'body.address.apartmentNumber'
+                        },
+                        {
+                            error: 'body.address.streetNumber is a required field',
+                            name: 'body.address.streetNumber'
+                        }
+                    ])
+                })
+
+                frisk.validateRequest(testSchemas.nestedBodySchema)(req, res, Spies.nextReject);
+            })
 
         });
 
