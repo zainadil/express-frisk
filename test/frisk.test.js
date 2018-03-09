@@ -127,7 +127,9 @@ describe('Express Frisk Middleware', () => {
             it('rejects undefined parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
-                    someObject: '{"boo": "boo"}',
+                    someObject: {
+                        boo: 'boo'
+                    },
                     fish: 'salmon'
                 });
                 const res = Utils.newResponse((payload) => {
@@ -143,7 +145,11 @@ describe('Express Frisk Middleware', () => {
             it('rejects undefined nested parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
-                    someObject: '{"foo": "boo","bar": "0d150abe-125a-4565-91d8-01d565d648e7","woo": "ooh"}',
+                    someObject: {
+                        foo: 'boo',
+                        bar: '0d150abe-125a-4565-91d8-01d565d648e7',
+                        woo: 'ooh'
+                    },
                 });
                 const res = Utils.newResponse((payload) => {
                     payload.message.should.equal('Invalid Request');
@@ -236,25 +242,27 @@ describe('Express Frisk Middleware', () => {
             });
 
             // This fails right now
-            it.skip('validates arrayOfStrings properly', () => {
-                const req = Utils.newRequest({
-                    array: 'This Is Not An Array Of Strings!'
-                });
 
-                const res = Utils.newResponse((payload) => {
-                    payload.errors.should.not.be.empty();
-                });
-
-                const arrayOfStringsSchema = {
-                    array: {
-                        type: frisk.types.arrayOfStrings
-                    }
-                };
-
-                frisk.validateRequest(arrayOfStringsSchema)(req,res,Spies.nextReject);
-            })
         });
     });
+
+    it.skip('validates arrayOfStrings properly', () => {
+        const req = Utils.newRequest({
+            array: 'This Is Not An Array Of Strings!'
+        });
+
+        const res = Utils.newResponse((payload) => {
+            payload.errors.should.not.be.empty();
+        });
+
+        const arrayOfStringsSchema = {
+            array: {
+                type: frisk.types.arrayOfStrings
+            }
+        };
+
+        frisk.validateRequest(arrayOfStringsSchema)(req,res,Spies.nextReject);
+    })
 
     context('When using \'in\' parameters', () => {
 
@@ -283,7 +291,7 @@ describe('Express Frisk Middleware', () => {
                 Spies.nextAccept.calledOnce.should.equal(true);
             });
 
-            it('rejects if a parameter that is required is not found in the proper location', () => {
+            it('rejects if a required body parameter is not found in the body', () => {
                 const req = {
                     query: {
                         mango: 'derango',
@@ -305,7 +313,65 @@ describe('Express Frisk Middleware', () => {
                     ])
                 });
                 frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
-            })
+            });
+
+            it('rejects if a required query parameter is not found in the query', () => {
+                const req = {
+                    body: {
+                        mango: 'derango',
+                        banana: 'nanana'
+                    },
+                    params: {
+                        strawberry: 'lawcherry',
+                        banana: 'nanana'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.lengthOf(1);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'query.banana',
+                            error: 'query.banana is a required field'
+                        },
+                    ])
+                });
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
+            });
+
+            it('rejects if a required params parameter in the params', () => {
+                const req = {
+                    query: {
+                        banana: 'nanana',
+                        strawberry: 'lawcherry'
+                    },
+                    body: {
+                        mango: 'derango',
+                        strawberry: 'lawcherry'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.lengthOf(1);
+                    payload.errors.should.deep.include.members([
+                        {
+                            error: 'params.strawberry is a required field',
+                            name: 'params.strawberry'
+                        }
+                    ])
+                });
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
+            });
+
+            // it('rejects when there is a missing required and bad type in an object', () => {
+            //     const req = {
+            //         body: {
+            //             address: {
+            //                 apartmentNumber:
+            //             }
+            //         }
+            //     }
+            // })
 
         });
 
