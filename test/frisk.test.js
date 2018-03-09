@@ -157,7 +157,7 @@ describe('Express Frisk Middleware', () => {
             });
             
         });
-        context('Not strict mode', () => {
+        context('not in strict mode', () => {
             it('allows undefined parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
@@ -253,6 +253,91 @@ describe('Express Frisk Middleware', () => {
 
                 frisk.validateRequest(arrayOfStringsSchema)(req,res,Spies.nextReject);
             })
+        });
+    });
+
+    context('When using \'in\' parameters', () => {
+
+        context('not in strict mode', () => {
+
+
+            it('finds parameters in each location', () => {
+
+                const req = {
+                    query: {
+                        banana: 'nanana'
+                    },
+                    body: {
+                        mango: 'derango'
+                    },
+                    params: {
+                        strawberry: 'lawcherry'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.shoud.be.empty();
+                });
+
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextAccept);
+                Spies.nextAccept.calledOnce.should.equal(true);
+            });
+
+            it('rejects if a parameter that is required is not found in the proper location', () => {
+                const req = {
+                    query: {
+                        mango: 'derango',
+                        banana: 'nanana'
+                    },
+                    params: {
+                        mango: 'derango',
+                        strawberry: 'lawcherry'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.lengthOf(1);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'body.mango',
+                            error: 'body.mango is a required field'
+                        },
+                    ])
+                });
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
+            })
+
+        });
+
+        context('incorrectly', () => {
+            it('rejects a schema that is inconsistent with \'in\' usage', () => {
+                const inconsistentSchema = {
+                    companyId: {
+                        type: frisk.types.uuid,
+                        in: 'path',
+                        required: true
+                    },
+                    teams: {
+                        type: frisk.types.object
+                    }
+                };
+                _.partial(frisk.validateRequest, inconsistentSchema).should.throw(
+                    'The \'in\' property of key \'teams\' must be defined'
+                );
+            });
+
+            it('rejects a schema that has an invalid value for the \'in\' property', () => {
+                const invalidSchema = {
+                    companyId: {
+                        type: frisk.types.uuid,
+                        in: 'param'
+                    }
+                };
+                _.partial(frisk.validateRequest, invalidSchema).should.throw(
+                    'Invalid value for the \'in\' property of key companyId: param. ' +
+                    'Expected one of [body, params, query]'
+                )
+            });
         });
     });
 });

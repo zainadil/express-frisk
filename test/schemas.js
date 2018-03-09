@@ -113,7 +113,25 @@ const TestSchemas = {
             }
             
         }
-    }
-}
+    },
+
+    fruitInDifferentLocations: {
+        banana: {
+            required: true,
+            type: frisk.types.string,
+            in: 'query'
+        },
+        strawberry: {
+            required: true,
+            type: frisk.types.string,
+            in: 'path'
+        },
+        mango: {
+            required: true,
+            type: frisk.types.string,
+            in: 'body'
+        }
+    },
+};
 
 module.exports = TestSchemas;
