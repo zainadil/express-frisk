@@ -203,7 +203,7 @@ describe('Express Frisk Middleware', () => {
                 frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextAccept);
                 Spies.nextAccept.calledOnce.should.equal(true);
             });
-            it('detects multiple errors', () => { 
+            it('detects multiple errors', () => {
                 const req = Utils.newRequest({
                     name: 456,
                     address: {
@@ -234,6 +234,25 @@ describe('Express Frisk Middleware', () => {
                 });
                 frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextReject);
             });
+
+            // This fails right now
+            it.skip('validates arrayOfStrings properly', () => {
+                const req = Utils.newRequest({
+                    array: 'This Is Not An Array Of Strings!'
+                });
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.not.be.empty();
+                });
+
+                const arrayOfStringsSchema = {
+                    array: {
+                        type: frisk.types.arrayOfStrings
+                    }
+                };
+
+                frisk.validateRequest(arrayOfStringsSchema)(req,res,Spies.nextReject);
+            })
         });
     });
 });
