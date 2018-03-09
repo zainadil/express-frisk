@@ -132,6 +132,23 @@ const TestSchemas = {
             in: 'body'
         }
     },
+    nestedBodySchema: {
+        address: {
+            type: frisk.types.object,
+            in: 'body',
+            required: true,
+            properties: {
+                streetNumber: {
+                    required: true,
+                    type: frisk.types.number
+                },
+                apartmentNumber: {
+                    required: false,
+                    type: frisk.types.number
+                }
+            }
+        },
+    }
 };
 
 module.exports = TestSchemas;
