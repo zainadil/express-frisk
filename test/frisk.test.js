@@ -266,6 +266,87 @@ describe('Express Frisk Middleware', () => {
 
     context('When using \'in\' parameters', () => {
 
+        context('in strict mode', () => {
+
+            it('accepts a request that conforms to the given schema', () => {
+                const req = {
+                    query: {
+                        banana: 'nanana'
+                    },
+                    body: {
+                        mango: 'derango'
+                    },
+                    params: {
+                        strawberry: 'lawcherry'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.empty();
+                });
+
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations, true)(req, res, Spies.nextAccept);
+            });
+
+            it('rejects a request that has extra parameter in the body, query, and params', () => {
+                const req = {
+                    query: {
+                        banana: 'nanana',
+                        notSpecified: 'atAll'
+                    },
+                    body: {
+                        mango: 'derango',
+                        notSpecified: 'atAll'
+                    },
+                    params: {
+                        strawberry: 'lawcherry',
+                        notSpecified: 'atAll'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.lengthOf(3);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'body.notSpecified',
+                            error: 'body.notSpecified is not an allowed field'
+                        },
+                        {
+                            name: 'query.notSpecified',
+                            error: 'query.notSpecified is not an allowed field'
+                        },
+                        {
+                            name: 'params.notSpecified',
+                            error: 'params.notSpecified is not an allowed field'
+                        },
+                    ])
+                });
+
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations, true)(req, res, Spies.nextReject);
+            });
+
+            it('Rejects if an extra field is specified in an object', () => {
+                const req = {
+                    body: {
+                        address: {
+                            skreetNumber: 'skrrt skrrrt'
+                        }
+                    }
+                };
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.length.should.equal(2);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'body.address.skreetNumber',
+                            error: 'body.address.skreetNumber is not an allowed field'
+                        }
+                    ])
+                });
+                frisk.validateRequest(testSchemas.nestedBodySchema, true)(req,res,Spies.nextReject);
+            })
+
+        });
+
         context('not in strict mode', () => {
 
 
@@ -284,80 +365,43 @@ describe('Express Frisk Middleware', () => {
                 };
 
                 const res = Utils.newResponse((payload) => {
-                    payload.errors.shoud.be.empty();
+                    payload.errors.should.be.empty();
                 });
 
                 frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextAccept);
                 Spies.nextAccept.calledOnce.should.equal(true);
             });
 
-            it('rejects if a required body parameter is not found in the body', () => {
+            it('rejects if a required body, query, or params parameter is not found in the correct location', () => {
                 const req = {
                     query: {
-                        mango: 'derango',
-                        banana: 'nanana'
+                        strawberry: 'lawcherry'
                     },
                     params: {
                         mango: 'derango',
-                        strawberry: 'lawcherry'
+
+                    },
+                    body: {
+                        banana: 'nanana'
+
                     }
                 };
 
                 const res = Utils.newResponse((payload) => {
-                    payload.errors.should.be.lengthOf(1);
+                    payload.errors.should.be.lengthOf(3);
                     payload.errors.should.deep.include.members([
                         {
                             name: 'body.mango',
                             error: 'body.mango is a required field'
                         },
-                    ])
-                });
-                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
-            });
-
-            it('rejects if a required query parameter is not found in the query', () => {
-                const req = {
-                    body: {
-                        mango: 'derango',
-                        banana: 'nanana'
-                    },
-                    params: {
-                        strawberry: 'lawcherry',
-                        banana: 'nanana'
-                    }
-                };
-
-                const res = Utils.newResponse((payload) => {
-                    payload.errors.should.be.lengthOf(1);
-                    payload.errors.should.deep.include.members([
+                        {
+                            error: 'params.strawberry is a required field',
+                            name: 'params.strawberry'
+                        },
                         {
                             name: 'query.banana',
                             error: 'query.banana is a required field'
                         },
-                    ])
-                });
-                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
-            });
-
-            it('rejects if a required params parameter in the params', () => {
-                const req = {
-                    query: {
-                        banana: 'nanana',
-                        strawberry: 'lawcherry'
-                    },
-                    body: {
-                        mango: 'derango',
-                        strawberry: 'lawcherry'
-                    }
-                };
-
-                const res = Utils.newResponse((payload) => {
-                    payload.errors.should.be.lengthOf(1);
-                    payload.errors.should.deep.include.members([
-                        {
-                            error: 'params.strawberry is a required field',
-                            name: 'params.strawberry'
-                        }
                     ])
                 });
                 frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
@@ -383,7 +427,7 @@ describe('Express Frisk Middleware', () => {
                             name: 'body.address.streetNumber'
                         }
                     ])
-                })
+                });
 
                 frisk.validateRequest(testSchemas.nestedBodySchema)(req, res, Spies.nextReject);
             })
