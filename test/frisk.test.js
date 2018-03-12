@@ -127,7 +127,9 @@ describe('Express Frisk Middleware', () => {
             it('rejects undefined parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
-                    someObject: '{"boo": "boo"}',
+                    someObject: {
+                        boo: 'boo'
+                    },
                     fish: 'salmon'
                 });
                 const res = Utils.newResponse((payload) => {
@@ -143,7 +145,11 @@ describe('Express Frisk Middleware', () => {
             it('rejects undefined nested parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
-                    someObject: '{"foo": "boo","bar": "0d150abe-125a-4565-91d8-01d565d648e7","woo": "ooh"}',
+                    someObject: {
+                        foo: 'boo',
+                        bar: '0d150abe-125a-4565-91d8-01d565d648e7',
+                        woo: 'ooh'
+                    },
                 });
                 const res = Utils.newResponse((payload) => {
                     payload.message.should.equal('Invalid Request');
@@ -157,7 +163,7 @@ describe('Express Frisk Middleware', () => {
             });
             
         });
-        context('Not strict mode', () => {
+        context('not in strict mode', () => {
             it('allows undefined parameters', () => {
                 const req = Utils.newRequest({
                     forest: 'trees',
@@ -203,7 +209,7 @@ describe('Express Frisk Middleware', () => {
                 frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextAccept);
                 Spies.nextAccept.calledOnce.should.equal(true);
             });
-            it('detects multiple errors', () => { 
+            it('detects multiple errors', () => {
                 const req = Utils.newRequest({
                     name: 456,
                     address: {
@@ -233,6 +239,229 @@ describe('Express Frisk Middleware', () => {
                     payload.errors[7].error.should.equal('liquorLicense is not an allowed field');
                 });
                 frisk.validateRequest(testSchemas.restaurantSchema,true)(req,res,Spies.nextReject);
+            });
+
+            // This fails right now
+
+        });
+    });
+
+    it.skip('validates arrayOfStrings properly', () => {
+        const req = Utils.newRequest({
+            array: 'This Is Not An Array Of Strings!'
+        });
+
+        const res = Utils.newResponse((payload) => {
+            payload.errors.should.not.be.empty();
+        });
+
+        const arrayOfStringsSchema = {
+            array: {
+                type: frisk.types.arrayOfStrings
+            }
+        };
+
+        frisk.validateRequest(arrayOfStringsSchema)(req,res,Spies.nextReject);
+    });
+
+    context('When using \'in\' parameters', () => {
+
+        context('in strict mode', () => {
+
+            it('accepts a request that conforms to the given schema', () => {
+                const req = {
+                    query: {
+                        banana: 'nanana'
+                    },
+                    body: {
+                        mango: 'derango'
+                    },
+                    params: {
+                        strawberry: 'lawcherry'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.empty();
+                });
+
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations, true)(req, res, Spies.nextAccept);
+            });
+
+            it('rejects a request that has extra parameter in the body, query, and params', () => {
+                const req = {
+                    query: {
+                        banana: 'nanana',
+                        notSpecified: 'atAll'
+                    },
+                    body: {
+                        mango: 'derango',
+                        notSpecified: 'atAll'
+                    },
+                    params: {
+                        strawberry: 'lawcherry',
+                        notSpecified: 'atAll'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.lengthOf(3);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'body.notSpecified',
+                            error: 'body.notSpecified is not an allowed field'
+                        },
+                        {
+                            name: 'query.notSpecified',
+                            error: 'query.notSpecified is not an allowed field'
+                        },
+                        {
+                            name: 'params.notSpecified',
+                            error: 'params.notSpecified is not an allowed field'
+                        },
+                    ])
+                });
+
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations, true)(req, res, Spies.nextReject);
+            });
+
+            it('Rejects if an extra field is specified in an object', () => {
+                const req = {
+                    body: {
+                        address: {
+                            skreetNumber: 'skrrt skrrrt'
+                        }
+                    }
+                };
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.length.should.equal(2);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'body.address.skreetNumber',
+                            error: 'body.address.skreetNumber is not an allowed field'
+                        }
+                    ])
+                });
+                frisk.validateRequest(testSchemas.nestedBodySchema, true)(req,res,Spies.nextReject);
+            })
+
+        });
+
+        context('not in strict mode', () => {
+
+
+            it('finds parameters in each location', () => {
+
+                const req = {
+                    query: {
+                        banana: 'nanana'
+                    },
+                    body: {
+                        mango: 'derango'
+                    },
+                    params: {
+                        strawberry: 'lawcherry'
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.empty();
+                });
+
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextAccept);
+                Spies.nextAccept.calledOnce.should.equal(true);
+            });
+
+            it('rejects if a required body, query, or params parameter is not found in the correct location', () => {
+                const req = {
+                    query: {
+                        strawberry: 'lawcherry'
+                    },
+                    params: {
+                        mango: 'derango',
+
+                    },
+                    body: {
+                        banana: 'nanana'
+
+                    }
+                };
+
+                const res = Utils.newResponse((payload) => {
+                    payload.errors.should.be.lengthOf(3);
+                    payload.errors.should.deep.include.members([
+                        {
+                            name: 'body.mango',
+                            error: 'body.mango is a required field'
+                        },
+                        {
+                            error: 'params.strawberry is a required field',
+                            name: 'params.strawberry'
+                        },
+                        {
+                            name: 'query.banana',
+                            error: 'query.banana is a required field'
+                        },
+                    ])
+                });
+                frisk.validateRequest(testSchemas.fruitInDifferentLocations)(req, res, Spies.nextReject);
+            });
+
+            it('rejects when there is a missing required and bad type in an object', () => {
+                const req = {
+                    body: {
+                        address: {
+                            apartmentNumber: 'notanumberlollolololol'
+                        }
+                    }
+                };
+                const res = Utils.newResponse((payload) => {
+                    // payload.errors.should.be.lengthOf(2);
+                    payload.errors.should.deep.include.members([
+                        {
+                            error: 'body.address.apartmentNumber must be of type number',
+                            name: 'body.address.apartmentNumber'
+                        },
+                        {
+                            error: 'body.address.streetNumber is a required field',
+                            name: 'body.address.streetNumber'
+                        }
+                    ])
+                });
+
+                frisk.validateRequest(testSchemas.nestedBodySchema)(req, res, Spies.nextReject);
+            })
+
+        });
+
+        context('incorrectly', () => {
+            it('rejects a schema that is inconsistent with \'in\' usage', () => {
+                const inconsistentSchema = {
+                    companyId: {
+                        type: frisk.types.uuid,
+                        in: 'path',
+                        required: true
+                    },
+                    teams: {
+                        type: frisk.types.object
+                    }
+                };
+                _.partial(frisk.validateRequest, inconsistentSchema).should.throw(
+                    'The \'in\' property of key \'teams\' must be defined'
+                );
+            });
+
+            it('rejects a schema that has an invalid value for the \'in\' property', () => {
+                const invalidSchema = {
+                    companyId: {
+                        type: frisk.types.uuid,
+                        in: 'param'
+                    }
+                };
+                _.partial(frisk.validateRequest, invalidSchema).should.throw(
+                    'Invalid value for the \'in\' property of key companyId: param. ' +
+                    'Expected one of [body, params, query]'
+                )
             });
         });
     });
