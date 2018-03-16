@@ -7,7 +7,7 @@ Check lib/frisk.js for the available types.  Use either 'body', 'params', or 'qu
 `in` at the top level.
 
 ```javascript
-const frisk = require(express-frisk);
+const frisk = require('express-frisk');
 
 router.get('/:id',
     frisk.validateRequest({
